@@ -1,0 +1,21 @@
+{
+	"name": "selenium-router-cli",
+	"version": "0.0.1",
+	"description": "Selenium router settings automation",
+	"license": "MIT",
+	"bin": "cli.js",
+	"engines": {
+		"node": ">=8"
+	},
+	"files": [
+		"cli.js"
+	],
+	"keywords": [
+		"cli",
+		"cli-app"
+	],
+	"dependencies": {
+		"meow": "^5.0.0",
+		"selenium-webdriver": "^4.0.0-alpha.4"
+	}
+}
