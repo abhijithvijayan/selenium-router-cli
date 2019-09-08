@@ -15,6 +15,7 @@
 		"cli-app"
 	],
 	"dependencies": {
+		"chalk": "^2.4.2",
 		"meow": "^5.0.0",
 		"selenium-webdriver": "^4.0.0-alpha.4"
 	}
