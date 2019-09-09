@@ -2,9 +2,9 @@
 
 > Automate Router Domain Blacklisting for DLink Router
 
-<!-- [![NPM](https://nodei.co/npm/selenium-router-cli.png?downloads=true&stars=true)](https://nodei.co/npm/selenium-router-cli/) -->
+### Warning
 
-### WIP
+This CLI is tested only on Dlink DIR-600M. Do not use the CLI if your router is of a different model id.
 
 ## Install
 
@@ -34,7 +34,7 @@ $ selenium-router-cli --help
 
 ## Dashboard
 
-![Image](dashboard.png)
+![Image](screenshot.png)
 
 ## License
 
