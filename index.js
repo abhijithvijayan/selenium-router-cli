@@ -181,8 +181,8 @@ module.exports = async _options => {
 
 			spinner.start('Adding sites...');
 
-			// Temporary for testing
-			const slicedList = domainList.slice(0, 5);
+			// Limit is 64 for Dlink DIR-600M
+			const slicedList = domainList.slice(0, 65);
 
 			let sitesCount = 0;
 
