@@ -9,6 +9,7 @@ const { Builder, By, Key, until } = require('selenium-webdriver');
 const pkg = require('./package.json');
 
 const options = {};
+const domainList = [];
 
 const validate = _options => {
 	if (
@@ -55,12 +56,37 @@ const writeRawData = async content => {
 
 	try {
 		await promisify(fs.writeFile)('hosts.md', decoded);
-		spinner.succeed('file created locally');
+		spinner.succeed('Hosts file created locally');
 	} catch (err) {
 		spinner.fail('Failed to create file');
 		flashError(err);
 	}
 	spinner.stop();
+};
+
+const performParsing = async () => {
+	const spinner = ora('Extracting domains...').start();
+
+	let count = 0;
+	/** https://regex101.com/r/xGkY1f/1 */
+	const regExp = /(?<=0\.0\.0\.0 |127\.0\.0\.1 )(.[^\s#]*)/g;
+
+	const eachLine = await promisify(lineReader.eachLine);
+	// read all lines and extract domain
+	eachLine('hosts.md', function(line) {
+		const domain = line.match(regExp);
+		if (domain) {
+			// push to array
+			domainList.push(domain[0]);
+			count += 1;
+		}
+	})
+		.then(function() {
+			spinner.succeed(`Extracted ${count} domains`);
+		})
+		.catch(function(err) {
+			flashError(err);
+		});
 };
 
 module.exports = async _options => {
@@ -88,7 +114,6 @@ module.exports = async _options => {
 	async function getData() {
 		const spinner = ora('Fetching hosts...').start();
 		try {
-			// Fetch hosts content
 			({
 				body: { content },
 			} = await ghGot('/repos/StevenBlack/hosts/contents/data/StevenBlack/hosts'));
@@ -100,10 +125,14 @@ module.exports = async _options => {
 		spinner.stop();
 	}
 
+	// Fetch hosts content
 	await getData();
 
 	// Write file locally
 	await writeRawData(content);
+
+	// Parse data to json
+	await performParsing();
 
 	async function runDriver() {
 		const spinner = ora('Selenium running...').start();
@@ -114,7 +143,8 @@ module.exports = async _options => {
 			// Open Router config page
 			await driver.get(`http://${gateway}`);
 
-			spinner.info('Using credentials to log in...');
+			spinner.stop();
+			spinner.start('Using credentials to log in...');
 
 			// Clear existing username
 			await driver.findElement(By.name('username')).clear();
@@ -151,18 +181,29 @@ module.exports = async _options => {
 
 			spinner.start('Adding sites...');
 
-			// fill in the form (sample site)
-			await driver.findElement(By.xpath('//input[@name="urlFQDN"]')).sendKeys('www.rankyou.com');
+			// Temporary for testing
+			const slicedList = domainList.slice(0, 5);
 
-			// Click on button
-			await driver.findElement(By.name('addFQDN')).click();
+			let sitesCount = 0;
 
-			// Wait until Form is loaded
-			await driver.wait(until.elementLocated(By.name('urlFQDN')), 1000);
+			for (let index = 0; index < slicedList.length; index += 1) {
+				// fill in the form
+				await driver.findElement(By.xpath('//input[@name="urlFQDN"]')).sendKeys(slicedList[index]);
 
-			spinner.succeed('Sites added successfully');
+				// Click on button
+				await driver.findElement(By.name('addFQDN')).click();
+
+				// Wait until Form is loaded
+				await driver.wait(until.elementLocated(By.name('urlFQDN')), 1000);
+
+				await driver.sleep(1500);
+
+				sitesCount += 1;
+			}
+
+			spinner.succeed(`${sitesCount} Sites added successfully`);
 		} finally {
-			spinner.info('Process completed...');
+			spinner.succeed('Process completed...');
 			spinner.stop();
 
 			await driver.quit();
