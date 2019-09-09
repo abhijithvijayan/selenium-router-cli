@@ -1,5 +1,10 @@
-const { Builder, By, Key, until } = require('selenium-webdriver');
+const fs = require('fs');
+const ora = require('ora');
 const chalk = require('chalk');
+const ghGot = require('gh-got');
+const { promisify } = require('util');
+const lineReader = require('line-reader');
+const { Builder, By, Key, until } = require('selenium-webdriver');
 
 const pkg = require('./package.json');
 
@@ -38,6 +43,19 @@ const flashError = message => {
 	process.exit(1);
 };
 
+const writeJSONContent = async content => {
+	const spinner = ora('Creating hosts file locally').start();
+
+	try {
+		await promisify(fs.writeFile)('hosts.json', content);
+		spinner.succeed('JSON file created locally');
+	} catch (err) {
+		spinner.fail('Failed to create JSON file');
+		flashError(err);
+	}
+	spinner.stop();
+};
+
 module.exports = _options => {
 	validate(_options);
 
@@ -58,12 +76,36 @@ module.exports = _options => {
 		return;
 	}
 
+	// Get data from GitHub
+
+	(async function getData() {
+		const spinner = ora('Fetching hosts...').start();
+
+		try {
+			// Fetch hosts content
+			const { body } = await ghGot('/repos/StevenBlack/hosts/contents/data/StevenBlack/hosts');
+
+			spinner.succeed('Fetched hosts successfully');
+
+			console.warn(chalk.default(body));
+			// Write file locally
+			// await writeJSONContent(body);
+		} catch (err) {
+			spinner.fail(chalk.default(err.body && err.body.message));
+		}
+		spinner.stop();
+	})();
+
 	(async function runDriver() {
+		const spinner = ora('Selenium running...').start();
+
 		const driver = new Builder().forBrowser('chrome').build();
 
 		try {
 			// Open Router config page
 			await driver.get(`http://${gateway}`);
+
+			spinner.info('Using credentials to log in...');
 
 			// Clear existing username
 			await driver.findElement(By.name('username')).clear();
@@ -71,6 +113,8 @@ module.exports = _options => {
 			await driver.findElement(By.name('username')).sendKeys(username);
 			// Fill in password & Login
 			await driver.findElement(By.name('password')).sendKeys(password, Key.RETURN);
+
+			spinner.succeed('Logged in');
 
 			// Switch to frame that has navbar
 			await driver.switchTo().frame(1);
@@ -93,6 +137,11 @@ module.exports = _options => {
 			// Implicitly wait for the input to be interactable
 			await driver.sleep(1000);
 
+			spinner.succeed('Navigated to page');
+			spinner.stop();
+
+			spinner.start('Adding sites...');
+
 			// fill in the form (sample site)
 			await driver.findElement(By.xpath('//input[@name="urlFQDN"]')).sendKeys('www.rankyou.com');
 
@@ -102,8 +151,11 @@ module.exports = _options => {
 			// Wait until Form is loaded
 			await driver.wait(until.elementLocated(By.name('urlFQDN')), 1000);
 
-			console.log(chalk.blue('Complete'));
+			spinner.succeed('Sites added successfully');
 		} finally {
+			spinner.info('Process completed...');
+			spinner.stop();
+
 			await driver.quit();
 		}
 	})();
