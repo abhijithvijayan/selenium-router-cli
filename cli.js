@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const meow = require('meow');
-const seleniumRouterCli = require('./index');
+const seleniumRouterCli = require('.');
 
 const cli = meow(
 	`
