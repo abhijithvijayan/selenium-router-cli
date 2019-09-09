@@ -43,20 +43,27 @@ const flashError = message => {
 	process.exit(1);
 };
 
-const writeJSONContent = async content => {
-	const spinner = ora('Creating hosts file locally').start();
+const writeRawData = async content => {
+	const spinner = ora('Decoding file contents...').start();
+
+	const decoded = await Buffer.from(content, 'base64').toString('utf8');
+
+	spinner.succeed('Decoding successfull');
+	spinner.stop();
+
+	spinner.start('Creating hosts file locally');
 
 	try {
-		await promisify(fs.writeFile)('hosts.json', content);
-		spinner.succeed('JSON file created locally');
+		await promisify(fs.writeFile)('hosts.md', decoded);
+		spinner.succeed('file created locally');
 	} catch (err) {
-		spinner.fail('Failed to create JSON file');
+		spinner.fail('Failed to create file');
 		flashError(err);
 	}
 	spinner.stop();
 };
 
-module.exports = _options => {
+module.exports = async _options => {
 	validate(_options);
 
 	const { username, password, version, gateway = '10.1.1.1' } = options;
@@ -73,30 +80,32 @@ module.exports = _options => {
 
 	if (!password) {
 		flashError('Error! password is a required field.');
-		return;
 	}
 
+	let content = {};
+
 	// Get data from GitHub
-
-	(async function getData() {
+	async function getData() {
 		const spinner = ora('Fetching hosts...').start();
-
 		try {
 			// Fetch hosts content
-			const { body } = await ghGot('/repos/StevenBlack/hosts/contents/data/StevenBlack/hosts');
+			({
+				body: { content },
+			} = await ghGot('/repos/StevenBlack/hosts/contents/data/StevenBlack/hosts'));
 
 			spinner.succeed('Fetched hosts successfully');
-
-			console.warn(chalk.default(body));
-			// Write file locally
-			// await writeJSONContent(body);
 		} catch (err) {
 			spinner.fail(chalk.default(err.body && err.body.message));
 		}
 		spinner.stop();
-	})();
+	}
 
-	(async function runDriver() {
+	await getData();
+
+	// Write file locally
+	await writeRawData(content);
+
+	async function runDriver() {
 		const spinner = ora('Selenium running...').start();
 
 		const driver = new Builder().forBrowser('chrome').build();
@@ -158,5 +167,7 @@ module.exports = _options => {
 
 			await driver.quit();
 		}
-	})();
+	}
+
+	await runDriver();
 };
