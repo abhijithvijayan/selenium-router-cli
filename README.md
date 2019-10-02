@@ -6,6 +6,10 @@
 
 This CLI is tested only on Dlink DIR-600M. Do not use the CLI if your router is of a different model id.
 
+## Requirements 
+
+Chrome Driver is required to run the CLI. For installation instructions, visit [here](https://chromedriver.chromium.org/getting-started).
+
 ## Install
 
 Ensure you have [Node.js](https://nodejs.org) 8 or later installed. Then run the following:
