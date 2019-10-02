@@ -32,4 +32,4 @@ const cli = meow(
 	}
 );
 
-seleniumRouterCli(cli.flags);
+seleniumRouterCli.run(cli.flags);
