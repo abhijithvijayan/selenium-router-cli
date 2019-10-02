@@ -89,7 +89,8 @@ const performParsing = async () => {
 		});
 };
 
-module.exports = async _options => {
+const run = async _options => {
+	console.log(_options);
 	validate(_options);
 
 	const { username, password, version, gateway = '10.1.1.1' } = options;
@@ -211,4 +212,14 @@ module.exports = async _options => {
 	}
 
 	await runDriver();
+};
+
+module.exports = {
+	options,
+	domainList,
+	validate,
+	flashError,
+	writeRawData,
+	performParsing,
+	run,
 };
